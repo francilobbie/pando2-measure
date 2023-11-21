@@ -1,0 +1,60 @@
+<div class="container mx-auto">
+  <div class="flex items-center justify-between pr-[22rem]">
+    <h1 class="text-3xl font-bold text-center">Filtres</h1>
+    <div>
+    <%= form_with(url: measures_path, method: :get, local: true) do |form| %>
+      <%= form.select :measure_type, ['CO2', 'HUM', 'TMP', 'VOCT'], { prompt: 'Salles' }, { onchange: 'this.form.submit();' } %>
+    <% end %>
+    </div>
+    <div>
+    <%= form_with(url: measures_path, method: :get, local: true) do |form| %>
+      <%= form.select :measure_type, ['CO2', 'HUM', 'TMP', 'VOCT'], { prompt: 'Paramètres' }, { onchange: 'this.form.submit();' } %>
+    <% end %>
+    </div>
+  </div>
+
+  <div class="mt-5 w-[900px] h-[900px]" data-controller="chart">
+    <h1 class="text-2xl font-bold text-left">Paramètre sélectionné: <%= @selected_measure_type %></h1>
+    <canvas id="myChart" width="400" height="400"></canvas>
+  </div>
+
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var ctx = document.getElementById('myChart').getContext('2d');
+    var myChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: <%= @data_for_room_1[:labels].to_json.html_safe %>,
+        datasets: [
+          {
+            label: 'Room 1 CO2 Levels',
+            data: <%= @data_for_room_1[:data].to_json.html_safe %>,
+            borderColor: 'rgb(255, 99, 132)',
+            fill: false
+          },
+          {
+            label: 'Room 3 CO2 Levels',
+            data: <%= @data_for_room_3[:data].to_json.html_safe %>,
+            borderColor: 'rgb(54, 162, 235)',
+            fill: false
+          },
+          {
+            label: 'Room 4 CO2 Levels',
+            data: <%= @data_for_room_4[:data].to_json.html_safe %>,
+            borderColor: 'rgb(75, 192, 192)',
+            fill: false
+          }
+        ]
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    });
+  });
+</script>
