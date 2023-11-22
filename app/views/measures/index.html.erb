@@ -1,60 +1,63 @@
 <div class="container mx-auto">
   <div class="flex items-center justify-between pr-[22rem]">
     <h1 class="text-3xl font-bold text-center">Filtres</h1>
-    <div>
-    <%= form_with(url: measures_path, method: :get, local: true) do |form| %>
-      <%= form.select :measure_type, ['CO2', 'HUM', 'TMP', 'VOCT'], { prompt: 'Salles' }, { onchange: 'this.form.submit();' } %>
-    <% end %>
-    </div>
-    <div>
-    <%= form_with(url: measures_path, method: :get, local: true) do |form| %>
-      <%= form.select :measure_type, ['CO2', 'HUM', 'TMP', 'VOCT'], { prompt: 'Paramètres' }, { onchange: 'this.form.submit();' } %>
-    <% end %>
-    </div>
+        <div>
+          <%= form_with(url: measures_path, method: :get, local: false, id: 'measure-form') do |form| %>
+            <% Csv.select(:room_id).distinct.pluck(:room_id).each do |room_id| %>
+              <%= check_box_tag 'room_ids[]', room_id, false, id: "room_#{room_id}" %>
+              <%= label_tag "room_#{room_id}", "Salle #{room_id}" %><br>
+            <% end %>
+        </div>
+        <div>
+          <%= form.select :measure_type, ['CO2', 'HUM', 'TMP', 'VOCT'], { prompt: 'Paramètres' }, { id: 'measure-type-select' } %>
+            <%= button_tag 'Mettre à jour', type: 'button', id: 'update-chart', class: "bg-[#3e52ce] text-white text-medium text-xl rounded-3xl px-7 py-3 ml-4" %>
+          <% end %>
+        </div>
   </div>
-
+  <!-- Chart container -->
   <div class="mt-5 w-[900px] h-[900px]" data-controller="chart">
     <h1 class="text-2xl font-bold text-left">Paramètre sélectionné: <%= @selected_measure_type %></h1>
-    <canvas id="myChart" width="400" height="400"></canvas>
+    <canvas id="myChart" width="400" height="400" ></canvas> <!-- Initially hidden -->
   </div>
-
 </div>
+
+
 
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-    var ctx = document.getElementById('myChart').getContext('2d');
-    var myChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: <%= @data_for_room_1[:labels].to_json.html_safe %>,
-        datasets: [
-          {
-            label: 'Room 1 CO2 Levels',
-            data: <%= @data_for_room_1[:data].to_json.html_safe %>,
-            borderColor: 'rgb(255, 99, 132)',
-            fill: false
-          },
-          {
-            label: 'Room 3 CO2 Levels',
-            data: <%= @data_for_room_3[:data].to_json.html_safe %>,
-            borderColor: 'rgb(54, 162, 235)',
-            fill: false
-          },
-          {
-            label: 'Room 4 CO2 Levels',
-            data: <%= @data_for_room_4[:data].to_json.html_safe %>,
-            borderColor: 'rgb(75, 192, 192)',
-            fill: false
-          }
-        ]
-      },
-      options: {
-        scales: {
-          y: {
-            beginAtZero: true
-          }
+    var updateButton = document.getElementById('update-chart');
+    var chartContainer = document.getElementById('myChart');
+    window.myChart = null; // Initialize the chart variable
+
+    updateButton.addEventListener('click', function() {
+      var formData = new FormData(document.getElementById('measure-form'));
+      var queryString = new URLSearchParams(formData).toString();
+
+      fetch('<%= measures_path %>?' + queryString, {
+        headers: {
+          'Accept': 'application/json', // Ensure we're requesting JSON
         }
-      }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if(data && data.labels && data.datasets) {
+          renderChart(data);
+          chartContainer.style.display = 'block'; // Show the chart
+        }
+      })
+      .catch(error => console.error('Error:', error));
     });
+
+    function renderChart(chartData) {
+      if(window.myChart && window.myChart.destroy) {
+        window.myChart.destroy(); // Destroy the existing chart if it exists
+      }
+      var ctx = chartContainer.getContext('2d');
+      window.myChart = new Chart(ctx, {
+        type: 'line',
+        data: chartData,
+        options: { scales: { y: { beginAtZero: true } } }
+      });
+    }
   });
 </script>
